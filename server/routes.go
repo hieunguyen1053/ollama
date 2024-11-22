@@ -279,6 +279,7 @@ func (s *Server) GenerateHandler(c *gin.Context) {
 			Images:  images,
 			Format:  req.Format,
 			Options: opts,
+			JsonSchema: req.JsonSchema,
 		}, func(cr llm.CompletionResponse) {
 			res := api.GenerateResponse{
 				Model:      req.Model,
@@ -1472,6 +1473,7 @@ func (s *Server) ChatHandler(c *gin.Context) {
 			Images:  images,
 			Format:  req.Format,
 			Options: opts,
+			JsonSchema: req.JsonSchema,
 		}, func(r llm.CompletionResponse) {
 			res := api.ChatResponse{
 				Model:      req.Model,

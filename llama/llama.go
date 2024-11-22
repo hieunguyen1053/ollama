@@ -68,6 +68,7 @@ package llama
 #include "llava.h"
 #include "mllama.h"
 #include "sampling_ext.h"
+#include "json-schema-to-grammar.h"
 
 bool llamaProgressCallback(float progress, void *user_data);
 
@@ -635,6 +636,7 @@ type SamplingParams struct {
 	PenalizeNl     bool
 	Seed           uint32
 	Grammar        string
+	JsonSchema     string
 }
 
 func NewSamplingContext(model *Model, params SamplingParams) (*SamplingContext, error) {
@@ -655,10 +657,22 @@ func NewSamplingContext(model *Model, params SamplingParams) (*SamplingContext, 
 	cparams.penalize_nl = C.bool(params.PenalizeNl)
 	cparams.seed = C.uint32_t(params.Seed)
 
-	grammar := C.CString(params.Grammar)
-	defer C.free(unsafe.Pointer(grammar))
-
-	cparams.grammar = grammar
+	if params.JsonSchema != "" {
+		jsonSchema := C.CString(params.JsonSchema)
+		defer C.free(unsafe.Pointer(jsonSchema))
+	
+		grammarCStr := C.json_schema_to_grammar(jsonSchema)
+		grammar := C.GoString(grammarCStr)
+		defer C.free(unsafe.Pointer(grammarCStr))
+	
+		cparams.grammar = C.CString(grammar)
+		defer C.free(unsafe.Pointer(cparams.grammar))
+	} else {
+		grammar := C.CString(params.Grammar)
+		defer C.free(unsafe.Pointer(grammar))
+	
+		cparams.grammar = grammar
+	}
 	context := &SamplingContext{c: C.gpt_sampler_cinit(model.c, &cparams)}
 	if context.c == nil {
 		return nil, errors.New("unable to create sampling context")
